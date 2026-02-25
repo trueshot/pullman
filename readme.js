@@ -57,7 +57,9 @@ Maker: proctor (Identifier Codes Pyramid)
   node readme.js --pemail-schema    pemail.dbf table structure [${s('pemail-schema.md')}]
   node readme.js --roles            Role taxonomy [${s('roles.md')}]
   node readme.js --portability      Identity across companies [${s('portability.md')}]
-  node readme.js --email-window     Email send UI flow [${s('email-window.md')}]
+  node readme.js --email-window     Email send UI flow [${s('email-window.md')}] (verified)
+  node readme.js --scale             Data scale — record counts, datasets [${s('scale.md')}]
+  node readme.js --registry          External lookup, privacy, public data [${s('registry.md')}]
 
 ## More
   node readme.js --library          Library index
@@ -100,6 +102,16 @@ if (args.includes('--email-window')) {
   loadFacet('email-window.md', '# Email Window Flow — TBD\nNeed to trace al.prg source code.');
 }
 
+// --scale: Data scale — record counts, datasets
+if (args.includes('--scale')) {
+  loadFacet('scale.md', '# PULP Data Scale — TBD\nNeed to count records and datasets from source.');
+}
+
+// --registry: External lookup, privacy, public data
+if (args.includes('--registry')) {
+  loadFacet('registry.md', '# PULP Registry — TBD\nHow would people be looked up externally?\nIf ProduceStandards.org has a /registry/ section, what data is public?\nWhat\'s the query path? How does privacy work (people ≠ companies)?\n\nThis facet is awaiting requirements.');
+}
+
 // --library: Library index
 if (args.includes('--library')) {
   const indexPath = path.join(LIB, 'INDEX.md');
@@ -140,7 +152,9 @@ if (args.includes('--json')) {
     'pemail-schema': 'pemail-schema.md',
     roles: 'roles.md',
     portability: 'portability.md',
-    'email-window': 'email-window.md'
+    'email-window': 'email-window.md',
+    scale: 'scale.md',
+    registry: 'registry.md'
   };
   for (const [k, v] of Object.entries(facetFiles)) {
     facets[k] = facetStatus(v);
@@ -206,6 +220,8 @@ Options:
   --roles           Role taxonomy
   --portability     Identity across companies
   --email-window    Email send UI flow
+  --scale           Data scale — record counts, datasets
+  --registry        External lookup, privacy, public data
   --library         Library index (all documents)
   --json            Structured data for programmatic use
   --tools           Full TOOLS.md content
