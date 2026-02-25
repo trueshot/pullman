@@ -59,6 +59,7 @@ Maker: proctor (Identifier Codes Pyramid)
   node readme.js --portability      Identity across companies [${s('portability.md')}]
   node readme.js --email-window     Email send UI flow [${s('email-window.md')}] (verified)
   node readme.js --scale             Data scale — record counts, datasets [${s('scale.md')}]
+  node readme.js --send-pipeline     Green button → PDF → email delivery chain [${s('send-pipeline.md')}]
   node readme.js --registry          External lookup, privacy, public data [${s('registry.md')}]
 
 ## More
@@ -105,6 +106,11 @@ if (args.includes('--email-window')) {
 // --scale: Data scale — record counts, datasets
 if (args.includes('--scale')) {
   loadFacet('scale.md', '# PULP Data Scale — TBD\nNeed to count records and datasets from source.');
+}
+
+// --send-pipeline: Green button → PDF → email delivery chain
+if (args.includes('--send-pipeline')) {
+  loadFacet('send-pipeline.md', '# Send Pipeline — TBD\nWhat happens when the green send button is clicked.');
 }
 
 // --registry: External lookup, privacy, public data
@@ -154,6 +160,7 @@ if (args.includes('--json')) {
     portability: 'portability.md',
     'email-window': 'email-window.md',
     scale: 'scale.md',
+    'send-pipeline': 'send-pipeline.md',
     registry: 'registry.md'
   };
   for (const [k, v] of Object.entries(facetFiles)) {
@@ -221,6 +228,7 @@ Options:
   --portability     Identity across companies
   --email-window    Email send UI flow
   --scale           Data scale — record counts, datasets
+  --send-pipeline   Green button → PDF → email delivery chain
   --registry        External lookup, privacy, public data
   --library         Library index (all documents)
   --json            Structured data for programmatic use
