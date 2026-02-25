@@ -6,7 +6,7 @@
 //   4. Document what EXISTS, not what you remember
 // Author: pullman gen-0
 // Created: 2026-02-22
-// Updated: 2026-02-24
+// Updated: 2026-02-25 — facet standard (--facet- prefix, trust states, --facets flag)
 
 const fs = require('fs');
 const path = require('path');
@@ -15,25 +15,68 @@ const args = process.argv.slice(2);
 const REPO = __dirname;
 const LIB = path.join(REPO, 'library');
 
-// Helper: check if a facet has a library doc
-function facetStatus(filename) {
-  return fs.existsSync(path.join(LIB, filename)) ? 'filled' : 'TBD';
+// ============================================================================
+// Facet Registry — single source of truth for all domain facets
+// ============================================================================
+const FACETS = [
+  { name: 'spec',           file: 'spec.md',           trust: 'unverified', desc: 'PULP code specification' },
+  { name: 'pulp-schema',    file: 'pulp-schema.md',    trust: 'unverified', desc: 'pulp.dbf table structure' },
+  { name: 'pemail-schema',  file: 'pemail-schema.md',  trust: 'unverified', desc: 'pemail.dbf table structure' },
+  { name: 'roles',          file: 'roles.md',          trust: 'unverified', desc: 'Role taxonomy' },
+  { name: 'portability',    file: 'portability.md',    trust: 'unverified', desc: 'Identity across companies' },
+  { name: 'email-window',   file: 'email-window.md',   trust: 'verified',   desc: 'Email send UI flow' },
+  { name: 'send-pipeline',  file: 'send-pipeline.md',  trust: 'unverified', desc: 'Green button → PDF → email delivery chain' },
+  { name: 'scale',          file: 'scale.md',          trust: 'unverified', desc: 'Data scale — record counts, datasets' },
+  { name: 'registry',       file: 'registry.md',       trust: 'tbd',        desc: 'External lookup, privacy, public data' },
+];
+
+// Helper: check if a facet file exists
+function facetExists(filename) {
+  return fs.existsSync(path.join(LIB, filename));
 }
 
-// Helper: load a library file or show fallback
-function loadFacet(filename, fallback) {
-  const fp = path.join(LIB, filename);
+// Helper: load a library file with trust state prefix, or show fallback
+function loadFacet(facet) {
+  const fp = path.join(LIB, facet.file);
   if (fs.existsSync(fp)) {
-    console.log(fs.readFileSync(fp, 'utf8'));
+    const content = fs.readFileSync(fp, 'utf8');
+    // Prepend trust state to first line
+    const lines = content.split('\n');
+    if (lines[0].startsWith('#')) {
+      lines[0] = `(${facet.trust}) ${lines[0].replace(/^#+ /, '')}`;
+    } else {
+      lines.unshift(`(${facet.trust})`);
+    }
+    console.log(lines.join('\n'));
   } else {
-    console.log(fallback);
+    console.log(`(${facet.trust}) ${facet.desc} — TBD`);
   }
   process.exit(0);
 }
 
+// Find a facet by name (supports --facet-X and --X aliases)
+function findFacet(arg) {
+  const name = arg.replace(/^--facet-/, '').replace(/^--/, '');
+  return FACETS.find(f => f.name === name);
+}
+
+// ============================================================================
+// --facets: List all facets with trust states
+// ============================================================================
+if (args.includes('--facets')) {
+  console.log('pullman — PULP Code Authority\n');
+  for (const f of FACETS) {
+    const status = facetExists(f.file) ? f.trust : 'empty';
+    const pad = ' '.repeat(Math.max(0, 22 - f.name.length));
+    console.log(`  --facet-${f.name}${pad}(${status})  ${f.desc}`);
+  }
+  process.exit(0);
+}
+
+// ============================================================================
 // DEFAULT: Helpful orientation (progressive disclosure)
+// ============================================================================
 if (args.length === 0) {
-  const s = facetStatus;
   console.log(`# PULP Code Authority — pullman
 
 PULP codes standardize people/contact identification for the produce industry.
@@ -52,15 +95,11 @@ Maker: proctor (Identifier Codes Pyramid)
   Cross-system join: PULP.id_no = PLUG code
 
 ## Facets
-  node readme.js --spec             PULP code specification [${s('spec.md')}]
-  node readme.js --pulp-schema      pulp.dbf table structure [${s('pulp-schema.md')}]
-  node readme.js --pemail-schema    pemail.dbf table structure [${s('pemail-schema.md')}]
-  node readme.js --roles            Role taxonomy [${s('roles.md')}]
-  node readme.js --portability      Identity across companies [${s('portability.md')}]
-  node readme.js --email-window     Email send UI flow [${s('email-window.md')}] (verified)
-  node readme.js --scale             Data scale — record counts, datasets [${s('scale.md')}]
-  node readme.js --send-pipeline     Green button → PDF → email delivery chain [${s('send-pipeline.md')}]
-  node readme.js --registry          External lookup, privacy, public data [${s('registry.md')}]
+  node readme.js --facets             List all facets with trust states
+${FACETS.map(f => {
+  const status = facetExists(f.file) ? f.trust : 'empty';
+  return `  node readme.js --facet-${f.name}${' '.repeat(Math.max(0, 14 - f.name.length))}${f.desc} (${status})`;
+}).join('\n')}
 
 ## More
   node readme.js --library          Library index
@@ -73,50 +112,19 @@ Maker: proctor (Identifier Codes Pyramid)
   process.exit(0);
 }
 
-// --spec: PULP code specification
-if (args.includes('--spec')) {
-  loadFacet('spec.md', '# PULP Code Specification — TBD\nAwaiting source data analysis.');
+// ============================================================================
+// Facet dispatch — handles both --facet-X and --X (alias)
+// ============================================================================
+for (const arg of args) {
+  const facet = findFacet(arg);
+  if (facet) {
+    loadFacet(facet);
+  }
 }
 
-// --pulp-schema: pulp.dbf table structure
-if (args.includes('--pulp-schema')) {
-  loadFacet('pulp-schema.md', '# PULP Schema — TBD\nNeed to examine actual DBF structure.');
-}
-
-// --pemail-schema: pemail.dbf table structure
-if (args.includes('--pemail-schema')) {
-  loadFacet('pemail-schema.md', '# PEMAIL Schema — TBD\nNeed to examine actual DBF structure.');
-}
-
-// --roles: Role taxonomy
-if (args.includes('--roles')) {
-  loadFacet('roles.md', '# Role Taxonomy — TBD\nNeed to confirm from pulp.dbf field values.');
-}
-
-// --portability: Identity across companies
-if (args.includes('--portability')) {
-  loadFacet('portability.md', '# Identity Portability — TBD\nNeed to analyze cross-dataset patterns.');
-}
-
-// --email-window: Email send UI flow
-if (args.includes('--email-window')) {
-  loadFacet('email-window.md', '# Email Window Flow — TBD\nNeed to trace al.prg source code.');
-}
-
-// --scale: Data scale — record counts, datasets
-if (args.includes('--scale')) {
-  loadFacet('scale.md', '# PULP Data Scale — TBD\nNeed to count records and datasets from source.');
-}
-
-// --send-pipeline: Green button → PDF → email delivery chain
-if (args.includes('--send-pipeline')) {
-  loadFacet('send-pipeline.md', '# Send Pipeline — TBD\nWhat happens when the green send button is clicked.');
-}
-
-// --registry: External lookup, privacy, public data
-if (args.includes('--registry')) {
-  loadFacet('registry.md', '# PULP Registry — TBD\nHow would people be looked up externally?\nIf ProduceStandards.org has a /registry/ section, what data is public?\nWhat\'s the query path? How does privacy work (people ≠ companies)?\n\nThis facet is awaiting requirements.');
-}
+// ============================================================================
+// Functional flags (not facets)
+// ============================================================================
 
 // --library: Library index
 if (args.includes('--library')) {
@@ -150,21 +158,9 @@ if (args.includes('--json')) {
     catch(e) { connections = []; }
   }
 
-  // Build facet status dynamically
   const facets = {};
-  const facetFiles = {
-    spec: 'spec.md',
-    'pulp-schema': 'pulp-schema.md',
-    'pemail-schema': 'pemail-schema.md',
-    roles: 'roles.md',
-    portability: 'portability.md',
-    'email-window': 'email-window.md',
-    scale: 'scale.md',
-    'send-pipeline': 'send-pipeline.md',
-    registry: 'registry.md'
-  };
-  for (const [k, v] of Object.entries(facetFiles)) {
-    facets[k] = facetStatus(v);
+  for (const f of FACETS) {
+    facets[f.name] = { file: f.file, trust: f.trust, exists: facetExists(f.file) };
   }
 
   console.log(JSON.stringify({
@@ -219,17 +215,14 @@ if (args.includes('--connections')) {
 if (args.includes('--help')) {
   console.log(`Usage: node readme.js [options]
 
-Options:
+Facets (domain knowledge):
+  --facets              List all facets with trust states
+${FACETS.map(f => `  --facet-${f.name}${' '.repeat(Math.max(0, 16 - f.name.length))}${f.desc}`).join('\n')}
+
+  Old names (--spec, --pulp-schema, etc.) still work as aliases.
+
+Functional:
   (none)            Quick orientation — what I do, data stats, facets
-  --spec            PULP code specification
-  --pulp-schema     pulp.dbf table structure
-  --pemail-schema   pemail.dbf table structure
-  --roles           Role taxonomy
-  --portability     Identity across companies
-  --email-window    Email send UI flow
-  --scale           Data scale — record counts, datasets
-  --send-pipeline   Green button → PDF → email delivery chain
-  --registry        External lookup, privacy, public data
   --library         Library index (all documents)
   --json            Structured data for programmatic use
   --tools           Full TOOLS.md content
