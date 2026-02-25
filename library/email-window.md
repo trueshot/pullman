@@ -127,15 +127,45 @@ thisComp.push({
 });
 ```
 
-### 7. User Sends Email
-- Clicks green send button next to an email address
-- `emailThis(obj)` captures: name, email, subject, pulpId, dataset, companyId, companyName
-- Gets sender info from `window.top.Ouser` (fullname, email)
-- Sets fields on `parent.prntData` (crosses iframe boundary)
-- Calls `parent.email_it(callback)` → POSTs to `../saveandemail.php`
-- On success: send button changes to thumbs-up icon
+### 7. User Clicks Green Send Button (the end-to-end test trigger)
 
-### 8. saveandemail.php (docsupport.js:14-31)
+Each contact email has a green send button with PULP identity data embedded:
+```html
+<button class="btn btn-success btn-xs"
+  data-email="george@produceflow.com"
+  data-name="George Burt"
+  data-subject="Load: 29621"
+  data-pulp="123820"
+  data-dataset="willdev"
+  data-companyid="INGLES"
+  data-companyname="Ingles Markets"
+  onclick="emailThis(this)">
+```
+
+**This button is where PULP identity meets document delivery.** Clicking it:
+
+1. `emailThis(obj)` in emaillist.php (our code) captures all data-* attributes
+2. Gets sender info from `window.top.Ouser` (fullname, email)
+3. Sets fields on `parent.prntData` — crosses the iframe boundary into newbol.htm:
+   - PRINT_PULPID = 123820 (the PULP code — person identity)
+   - PRINT_DATASET = willdev
+   - PRINT_COMPANYID = INGLES (the PLUG code — company identity)
+   - PRINT_COMPANYNAME = Ingles Markets
+   - PRINT_NAME = George Burt
+   - PRINT_EMAIL = george@produceflow.com
+4. Calls `parent.email_it(callback)` — hands off to docsupport.js
+5. On success: send button icon changes from envelope to thumbs-up
+
+**To test end-to-end with testharness:** After opening the email window via
+pMaster (see Testing section above), click the green button next to
+george@produceflow.com. This produces the PDF and emails it — exercising
+the full pipeline from PULP identity through document generation to delivery.
+
+### 8. email_it() → saveandemail.php (docsupport.js:14-31)
+
+Once `emailThis` sets prntData and calls `parent.email_it()`, the handoff
+leaves our domain (emaillist.php) and enters the document delivery chain:
+
 ```javascript
 email_it(cb) {
   prntData.LOAD = loadObj.mload;
@@ -143,10 +173,14 @@ email_it(cb) {
   prntData.EXT = loadObj.ext;
   prntData.LEVEL = 3;  // 3 = email, 2 = pdf
   prntData.ABC = loadObj.Mabc;
-  prntData.THECODE = $('#DocContent')[0].innerHTML;
-  // POSTs JSON to ../saveandemail.php
+  prntData.THECODE = $('#DocContent')[0].innerHTML;  // BOL HTML content
+  // POSTs JSON to ../saveandemail.php → PDF generation + email delivery
 }
 ```
+
+The PULP identity fields (PRINT_PULPID, PRINT_COMPANYID, PRINT_DATASET)
+travel with the document — linking the sent email back to the specific
+person and company in the PULP/PLUG system.
 
 ## CRUD Operations (emaillist.php, via $.getScript)
 | Action | URL | Callback |
